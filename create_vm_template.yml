@@ -44,8 +44,6 @@
       ansible.builtin.command:
         cmd: >-
           qm importdisk {{ template_id }} {{ image_file }} {{ storage }}
-      args:
-        warn: false
 
     - name: Configure VM hardware for cloud-init
       ansible.builtin.command:
