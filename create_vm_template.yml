@@ -1,54 +1,63 @@
 ---
 - name: Create Ubuntu 22.04 Cloud-Init Template on Proxmox
-  hosts: localhost
+  hosts: proxmox_nodes
   gather_facts: false
+  become: true
 
   vars:
-    template_id: 9010
-    template_name: "git-ubuntu-22.04-template"
+    template_id: 9000
+    template_name: "ubuntu-22.04-template"
     image_url: "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
-    image_file: "/var/lib/vz/template/iso/jammy-server-cloudimg-amd64.img"
+    iso_dir: "/var/lib/vz/template/iso"
+    image_file: "{{ iso_dir }}/jammy-server-cloudimg-amd64.img"
     storage: "local-lvm"
     bridge: "vmbr0"
 
   tasks:
+    - name: Ensure ISO directory exists
+      ansible.builtin.file:
+        path: "{{ iso_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
     - name: Download Ubuntu Cloud Image
       ansible.builtin.get_url:
         url: "{{ image_url }}"
         dest: "{{ image_file }}"
-        mode: '0644'
+        mode: "0644"
+        force: no
 
-    - name: Create new VM
-      ansible.builtin.command: >
-        qm create {{ template_id }}
-        --name {{ template_name }}
-        --memory 2048
-        --cores 2
-        --net0 virtio,bridge={{ bridge }}
+    - name: Create VM for template
+      ansible.builtin.command:
+        cmd: >-
+          qm create {{ template_id }}
+          --name {{ template_name }}
+          --memory 2048
+          --cores 2
+          --net0 virtio,bridge={{ bridge }}
+      args:
+        creates: "/etc/pve/qemu-server/{{ template_id }}.conf"
 
     - name: Import disk to storage
-      ansible.builtin.command: >
-        qm importdisk {{ template_id }} {{ image_file }} {{ storage }}
+      ansible.builtin.command:
+        cmd: >-
+          qm importdisk {{ template_id }} {{ image_file }} {{ storage }}
+      args:
+        warn: false
 
-    - name: Set disk and hardware options
-      ansible.builtin.command: >
-        qm set {{ template_id }}
-        --scsihw virtio-scsi-pci
-        --scsi0 {{ storage }}:vm-{{ template_id }}-disk-0
+    - name: Configure VM hardware for cloud-init
+      ansible.builtin.command:
+        cmd: >-
+          qm set {{ template_id }}
+          --scsihw virtio-scsi-pci
+          --scsi0 {{ storage }}:vm-{{ template_id }}-disk-0
+          --ide2 {{ storage }}:cloudinit
+          --boot order=scsi0
+          --serial0 socket --vga serial0
 
-    - name: Add Cloud-Init drive
-      ansible.builtin.command: >
-        qm set {{ template_id }} --ide2 {{ storage }}:cloudinit
-
-    - name: Set boot options
-      ansible.builtin.command: >
-        qm set {{ template_id }} --boot order=scsi0
-
-    - name: Set serial console
-      ansible.builtin.command: >
-        qm set {{ template_id }} --serial0 socket --vga serial0
-
-    - name: Convert VM to template
-      ansible.builtin.command: >
-        qm template {{ template_id }}
-
+    - name: Convert VM to a template
+      ansible.builtin.command:
+        cmd: >-
+          qm template {{ template_id }}
