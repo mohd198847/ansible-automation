@@ -5,7 +5,7 @@
   become: true
 
   vars:
-    template_id: 9000
+    template_id: 9010
     template_name: "ubuntu-22.04-template"
     image_url: "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
     iso_dir: "/var/lib/vz/template/iso"
