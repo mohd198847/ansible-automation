@@ -28,7 +28,7 @@
 
     - name: Run Lynis audit and save output to TXT
       shell: |
-        lynis audit system --quiet > "{{ lynis_report_txt }}"
+        lynis audit system  > "{{ lynis_report_txt }}"
       args:
         executable: /bin/bash
 
