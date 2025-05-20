@@ -4,36 +4,68 @@
   become: yes
   vars:
     scap_report_dir: "/var/oscap-reports"
-    scap_content_url: "https://github.com/ComplianceAsCode/content/releases/latest/download/ssg-ubuntu2204-ds.xml"
-    scap_content_local: "/usr/share/xml/scap/ssg/content/ssg-ubuntu2204-ds.xml"
-    scap_profile: "xccdf_org.ssgproject.content_profile_cis"  # override with --extra-vars "scap_profile=..."
+    scap_content_dir: "/usr/share/xml/scap/ssg/content"
+    scap_build_dir: "/opt/scap-build"
+    scap_repo: "https://github.com/ComplianceAsCode/content.git"
+    scap_profile: "xccdf_org.ssgproject.content_profile_cis_level1_server"
+    scap_ds_file: "ssg-ubuntu2204-ds.xml"
 
   tasks:
-    - name: Ensure OpenSCAP and SCAP dependencies are installed
+    - name: Install build dependencies for SCAP content
       apt:
         name:
+          - git
+          - cmake
+          - make
+          - expat
           - libopenscap8
-          - wget
-        update_cache: yes
+          - libxml2-utils
+          - ninja-build
+          - python3-jinja2
+          - python3-yaml
+          - python3-setuptools
+          - xsltproc
         state: present
+        update_cache: yes
 
-    - name: Create SCAP content directory if needed
+    - name: Create SCAP build directory
       file:
-        path: "{{ scap_content_local | dirname }}"
+        path: "{{ scap_build_dir }}"
         state: directory
         mode: '0755'
 
-    - name: Check if SCAP content already exists
-      stat:
-        path: "{{ scap_content_local }}"
-      register: scap_content_stat
+    - name: Clone ComplianceAsCode/content repository
+      git:
+        repo: "{{ scap_repo }}"
+        dest: "{{ scap_build_dir }}/content"
+        version: master
 
-    - name: Download SCAP content if not already present
-      get_url:
-        url: "{{ scap_content_url }}"
-        dest: "{{ scap_content_local }}"
-        mode: '0644'
-      when: not scap_content_stat.stat.exists
+    - name: Create build subdirectory
+      file:
+        path: "{{ scap_build_dir }}/content/build"
+        state: directory
+
+    - name: Build SCAP content using cmake and make
+      command: cmake ..
+      args:
+        chdir: "{{ scap_build_dir }}/content/build"
+
+    - name: Compile SCAP content
+      command: make -j$(nproc)
+      args:
+        chdir: "{{ scap_build_dir }}/content/build"
+
+    - name: Create SCAP content directory if needed
+      file:
+        path: "{{ scap_content_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy generated SCAP content to system directory
+      copy:
+        src: "{{ scap_build_dir }}/content/build/{{ scap_ds_file }}"
+        dest: "{{ scap_content_dir }}/{{ scap_ds_file }}"
+        remote_src: yes
 
     - name: Create directory for OSCAP reports
       file:
@@ -47,11 +79,11 @@
         --profile {{ scap_profile }}
         --results {{ scap_report_dir }}/oscap-{{ inventory_hostname }}.xml
         --report {{ scap_report_dir }}/oscap-{{ inventory_hostname }}.html
-        {{ scap_content_local }}
+        {{ scap_content_dir }}/{{ scap_ds_file }}
 
     - name: Show success message
       debug:
-        msg: |
+        msg: >
           ✅ OpenSCAP scan complete on {{ inventory_hostname }}.
           📁 HTML Report: {{ scap_report_dir }}/oscap-{{ inventory_hostname }}.html
           📁 XML Report: {{ scap_report_dir }}/oscap-{{ inventory_hostname }}.xml
