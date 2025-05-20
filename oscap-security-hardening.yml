@@ -1,14 +1,13 @@
 ---
-- name: Install OpenSCAP and run STIG profile scan
+- name: Install OpenSCAP and run STIG scan
   hosts: all
   become: yes
   vars:
     scap_url: "https://github.com/ComplianceAsCode/content/releases/download/v0.1.76/scap-security-guide-0.1.76.zip"
-    scap_zip: "/tmp/scap-security-guide.zip"
-    scap_extract_dir: "/opt/scap-security-guide"
-    scap_data_file: "{{ scap_extract_dir }}/ssg-ubuntu2004-ds.xml"
-    report_dir: "/var/oscap-reports"
-    report_file: "{{ report_dir }}/stig-report.html"
+    scap_dest_dir: "/opt/scap-security-guide"
+    scap_zip_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.76.zip"
+    scap_data_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.76/ssg-ubuntu2004-ds.xml"
+    report_file: "{{ scap_dest_dir }}/stig-report.html"
 
   tasks:
 
@@ -17,34 +16,26 @@
         name:
           - libopenscap8
           - unzip
-          - wget
-        update_cache: yes
         state: present
+        update_cache: yes
 
-    - name: Create directory to extract SCAP content
+    - name: Create directory for SCAP content
       file:
-        path: "{{ scap_extract_dir }}"
+        path: "{{ scap_dest_dir }}"
         state: directory
         mode: '0755'
 
     - name: Download SCAP Security Guide
       get_url:
         url: "{{ scap_url }}"
-        dest: "{{ scap_zip }}"
+        dest: "{{ scap_zip_file }}"
         mode: '0644'
 
-    - name: Unzip SCAP Security Guide
+    - name: Unzip SCAP content
       unarchive:
-        src: "{{ scap_zip }}"
-        dest: "{{ scap_extract_dir }}"
+        src: "{{ scap_zip_file }}"
+        dest: "{{ scap_dest_dir }}"
         remote_src: yes
-        extra_opts: [ "-o" ]
-
-    - name: Create report directory
-      file:
-        path: "{{ report_dir }}"
-        state: directory
-        mode: '0755'
 
     - name: Run OpenSCAP STIG scan
       command: >
@@ -52,7 +43,3 @@
         --profile xccdf_org.ssgproject.content_profile_stig
         --report {{ report_file }}
         {{ scap_data_file }}
-
-    - name: Show report path
-      debug:
-        msg: "✅ STIG scan complete. HTML report saved at: {{ report_file }}"
