@@ -8,7 +8,8 @@
     scap_zip_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.76.zip"
     scap_data_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.76/ssg-ubuntu2204-ds.xml"
     report_file: "{{ scap_dest_dir }}/stig-report-{{ ansible_date_time.iso8601_basic_short }}.html"
-    scap_profile: xccdf_org.ssgproject.content_profile_standard
+    scap_profile: "{{ scap_profile | default('xccdf_org.ssgproject.content_profile_standard') }}"
+
 
   tasks:
 
