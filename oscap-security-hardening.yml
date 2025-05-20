@@ -52,8 +52,6 @@
         --profile xccdf_org.ssgproject.content_profile_stig
         --report {{ report_file }}
         {{ scap_data_file }}
-      args:
-        warn: false
 
     - name: Show report path
       debug:
