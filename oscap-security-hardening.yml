@@ -42,6 +42,7 @@
         oscap xccdf eval
         --profile xccdf_org.ssgproject.content_profile_stig
         --report {{ report_file }}
+        {{ scap_data_file }}
       register: scap_result
       failed_when: >
         scap_result.rc != 0 and
