@@ -6,7 +6,7 @@
     scap_url: "https://github.com/ComplianceAsCode/content/releases/download/v0.1.76/scap-security-guide-0.1.76.zip"
     scap_zip: "/tmp/scap-security-guide.zip"
     scap_extract_dir: "/opt/scap-security-guide"
-    scap_data_file: "{{ scap_extract_dir }}/ssg-ubuntu2004-ds-1.2.xml"
+    scap_data_file: "{{ scap_extract_dir }}/ssg-ubuntu2004-ds.xml"
     report_dir: "/var/oscap-reports"
     report_file: "{{ report_dir }}/stig-report.html"
 
