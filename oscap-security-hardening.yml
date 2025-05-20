@@ -1,5 +1,5 @@
 ---
-- name: Run OpenSCAP scan and store reports on remote host
+- name: Generate OpenSCAP compliance reports
   hosts: all
   become: yes
   vars:
@@ -51,7 +51,7 @@
         chdir: "{{ scap_build_dir }}/content/build"
 
     - name: Compile SCAP content
-      command: make -j$(nproc)
+      shell: make -j$(nproc)
       args:
         chdir: "{{ scap_build_dir }}/content/build"
 
