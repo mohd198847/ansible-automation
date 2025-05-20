@@ -2,6 +2,7 @@
 - name: Run Lynis Security Audit and Collect Report
   hosts: all
   become: yes
+  become_method: sudo
   vars:
     lynis_output_dir: /var/log/lynis/custom-report
     lynis_report_txt: "{{ lynis_output_dir }}/lynis-report.txt"
