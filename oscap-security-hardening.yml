@@ -6,8 +6,8 @@
     scap_url: "https://github.com/ComplianceAsCode/content/releases/download/v0.1.76/scap-security-guide-0.1.76.zip"
     scap_dest_dir: "/opt/scap-security-guide"
     scap_zip_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.76.zip"
-    scap_data_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.76/ssg-ubuntu2004-ds.xml"
-    report_file: "{{ scap_dest_dir }}/stig-report.html"
+    scap_data_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.76/ssg-ubuntu2204-ds.xml"
+    report_file: "{{ scap_dest_dir }}/stig-report-{{ ansible_date_time.date }}.html"
 
   tasks:
 
