@@ -1,0 +1,61 @@
+---
+- name: Run Lynis Security Audit and Collect Report
+  hosts: all
+  become: yes
+  vars:
+    lynis_output_dir: /var/log/lynis/custom-report
+    lynis_report_txt: "{{ lynis_output_dir }}/lynis-report.txt"
+    lynis_report_md: "{{ lynis_output_dir }}/lynis-report.md"
+
+  tasks:
+
+    - name: Install dependencies
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop:
+        - lynis
+        - python3-jinja2  # for local report templating if needed
+
+    - name: Create output directory
+      file:
+        path: "{{ lynis_output_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Run Lynis audit and save output
+      shell: |
+        lynis audit system --quiet > {{ lynis_report_txt }}
+      args:
+        executable: /bin/bash
+
+    - name: Convert Lynis output to Markdown
+      delegate_to: localhost
+      run_once: true
+      shell: |
+        mkdir -p output
+        echo "# Lynis Security Audit Report" > output/lynis-report.md
+        echo "\n_Audit run on {{ inventory_hostname }}_\n" >> output/lynis-report.md
+        awk '
+          /Hardening index/ || /Warnings found:/ || /Suggestions:/ {
+            print "\n## " $0
+          }
+          /^ / {
+            print "- " $0
+          }
+        ' {{ lynis_report_txt }} >> output/lynis-report.md
+      args:
+        executable: /bin/bash
+
+    - name: Fetch raw report locally
+      fetch:
+        src: "{{ lynis_report_txt }}"
+        dest: "./output/{{ inventory_hostname }}-lynis.txt"
+        flat: yes
+
+    - name: Fetch markdown report locally
+      fetch:
+        src: "{{ lynis_report_md }}"
+        dest: "./output/{{ inventory_hostname }}-lynis.md"
+        flat: yes
