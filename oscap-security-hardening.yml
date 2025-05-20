@@ -28,7 +28,7 @@
         url: "{{ scap_content_url }}"
         dest: "{{ scap_content_local }}"
         mode: '0644'
-      when: not (scap_content_local | path_exists)
+      when: not (scap_content_local | stat )
 
     - name: Create directory for OSCAP reports
       file:
