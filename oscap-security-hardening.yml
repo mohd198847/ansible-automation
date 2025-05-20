@@ -6,7 +6,7 @@
     scap_report_dir: "/var/oscap-reports"
     scap_content_url: "https://github.com/ComplianceAsCode/content/releases/latest/download/ssg-ubuntu2204-ds.xml"
     scap_content_local: "/usr/share/xml/scap/ssg/content/ssg-ubuntu2204-ds.xml"
-    scap_profile: "xccdf_org.ssgproject.content_profile_cis"  # You can override with extra-vars
+    scap_profile: "xccdf_org.ssgproject.content_profile_cis"  # override with --extra-vars "scap_profile=..."
 
   tasks:
     - name: Ensure OpenSCAP and SCAP dependencies are installed
@@ -23,12 +23,17 @@
         state: directory
         mode: '0755'
 
+    - name: Check if SCAP content already exists
+      stat:
+        path: "{{ scap_content_local }}"
+      register: scap_content_stat
+
     - name: Download SCAP content if not already present
       get_url:
         url: "{{ scap_content_url }}"
         dest: "{{ scap_content_local }}"
         mode: '0644'
-      when: not (scap_content_local | stat )
+      when: not scap_content_stat.stat.exists
 
     - name: Create directory for OSCAP reports
       file:
@@ -46,7 +51,7 @@
 
     - name: Show success message
       debug:
-        msg: >
+        msg: |
           ✅ OpenSCAP scan complete on {{ inventory_hostname }}.
           📁 HTML Report: {{ scap_report_dir }}/oscap-{{ inventory_hostname }}.html
           📁 XML Report: {{ scap_report_dir }}/oscap-{{ inventory_hostname }}.xml
