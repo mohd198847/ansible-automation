@@ -40,7 +40,7 @@
     - name: Run OpenSCAP STIG scan
       command: >
         oscap xccdf eval
-        --profile xccdf_org.ssgproject.content_profile_cis_level1_server
+        --profile xccdf_org.ssgproject.content_profile_standard
         --report {{ report_file }}
         {{ scap_data_file }}
       register: scap_result
