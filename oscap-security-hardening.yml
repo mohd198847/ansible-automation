@@ -12,7 +12,6 @@
     - name: Ensure OpenSCAP and SCAP dependencies are installed
       apt:
         name:
-          - openscap-scanner
           - libopenscap8
           - wget
         update_cache: yes
