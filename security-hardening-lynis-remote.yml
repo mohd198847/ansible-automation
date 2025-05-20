@@ -1,0 +1,62 @@
+---
+- name: Run Lynis Security Audit and Save Report on Remote Server
+  hosts: all
+  become: yes
+  become_method: sudo
+
+  vars:
+    lynis_output_dir: /var/log/lynis/custom-report
+    lynis_report_txt: "{{ lynis_output_dir }}/lynis-report.txt"
+    lynis_report_md: "{{ lynis_output_dir }}/lynis-report.md"
+    lynis_report_html: "{{ lynis_output_dir }}/lynis-report.html"
+
+  tasks:
+
+    - name: Install dependencies
+      apt:
+        name:
+          - lynis
+          - pandoc  # for Markdown to HTML conversion
+        state: present
+        update_cache: yes
+
+    - name: Create output directory
+      file:
+        path: "{{ lynis_output_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Run Lynis audit and save output to TXT
+      shell: |
+        lynis audit system --quiet > "{{ lynis_report_txt }}"
+      args:
+        executable: /bin/bash
+
+    - name: Convert Lynis TXT report to Markdown (on remote)
+      shell: |
+        echo "# Lynis Security Audit Report" > "{{ lynis_report_md }}"
+        echo "\n_Audit run on {{ inventory_hostname }}_\n" >> "{{ lynis_report_md }}"
+        awk '
+          /Hardening index/ || /Warnings found:/ || /Suggestions:/ {
+            print "\n## " $0
+          }
+          /^ / {
+            print "- " $0
+          }
+        ' "{{ lynis_report_txt }}" >> "{{ lynis_report_md }}"
+      args:
+        executable: /bin/bash
+
+    - name: Convert Markdown to HTML using pandoc (on remote)
+      shell: |
+        pandoc "{{ lynis_report_md }}" -f markdown -t html -s -o "{{ lynis_report_html }}"
+      args:
+        executable: /bin/bash
+
+    - name: Show report paths on remote
+      debug:
+        msg: |
+          Reports saved on {{ inventory_hostname }}:
+          - Text: {{ lynis_report_txt }}
+          - Markdown: {{ lynis_report_md }}
+          - HTML: {{ lynis_report_html }}
