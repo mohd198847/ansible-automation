@@ -1,0 +1,53 @@
+---
+- name: Run OpenSCAP scan and store reports on remote host
+  hosts: all
+  become: yes
+  vars:
+    scap_report_dir: "/var/oscap-reports"
+    scap_content_url: "https://github.com/ComplianceAsCode/content/releases/latest/download/ssg-ubuntu2204-ds.xml"
+    scap_content_local: "/usr/share/xml/scap/ssg/content/ssg-ubuntu2204-ds.xml"
+    scap_profile: "xccdf_org.ssgproject.content_profile_cis"  # You can override with extra-vars
+
+  tasks:
+    - name: Ensure OpenSCAP and SCAP dependencies are installed
+      apt:
+        name:
+          - openscap-scanner
+          - libopenscap8
+          - wget
+        update_cache: yes
+        state: present
+
+    - name: Create SCAP content directory if needed
+      file:
+        path: "{{ scap_content_local | dirname }}"
+        state: directory
+        mode: '0755'
+
+    - name: Download SCAP content if not already present
+      get_url:
+        url: "{{ scap_content_url }}"
+        dest: "{{ scap_content_local }}"
+        mode: '0644'
+      when: not (scap_content_local | path_exists)
+
+    - name: Create directory for OSCAP reports
+      file:
+        path: "{{ scap_report_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Run OpenSCAP scan using selected profile
+      command: >
+        oscap xccdf eval
+        --profile {{ scap_profile }}
+        --results {{ scap_report_dir }}/oscap-{{ inventory_hostname }}.xml
+        --report {{ scap_report_dir }}/oscap-{{ inventory_hostname }}.html
+        {{ scap_content_local }}
+
+    - name: Show success message
+      debug:
+        msg: >
+          ✅ OpenSCAP scan complete on {{ inventory_hostname }}.
+          📁 HTML Report: {{ scap_report_dir }}/oscap-{{ inventory_hostname }}.html
+          📁 XML Report: {{ scap_report_dir }}/oscap-{{ inventory_hostname }}.xml
