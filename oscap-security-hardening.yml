@@ -42,5 +42,7 @@
         oscap xccdf eval
         --profile xccdf_org.ssgproject.content_profile_stig
         --report {{ report_file }}
-        {{ scap_data_file }}
-      ignore_errors: yes
+      register: scap_result
+      failed_when: >
+        scap_result.rc != 0 and
+        ('Obtrusive data from probe!' not in scap_result.stderr)
