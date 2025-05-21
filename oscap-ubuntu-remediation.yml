@@ -1,0 +1,64 @@
+---
+- name: Remediate system using OpenSCAP
+  hosts: all
+  become: yes
+  vars:
+    scap_url: "https://github.com/ComplianceAsCode/content/releases/download/v0.1.76/scap-security-guide-0.1.76.zip"
+    scap_dest_dir: "/opt/scap-security-guide"
+    scap_zip_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.76.zip"
+    scap_data_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.76/ssg-ubuntu2204-ds.xml"
+    scap_profile: "{{ scap_profile | default('xccdf_org.ssgproject.content_profile_standard') }}"
+    rem_report: "{{ scap_dest_dir }}/remediation-report-{{ ansible_date_time.iso8601_basic_short }}.html"
+
+  tasks:
+
+    - name: Install required packages
+      apt:
+        name:
+          - libopenscap8
+          - unzip
+        state: present
+        update_cache: yes
+
+    - name: Check if SCAP data file already exists
+      stat:
+        path: "{{ scap_data_file }}"
+      register: scap_file_status
+
+    - name: Create directory for SCAP content
+      file:
+        path: "{{ scap_dest_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Download SCAP Security Guide if not present
+      get_url:
+        url: "{{ scap_url }}"
+        dest: "{{ scap_zip_file }}"
+        mode: '0644'
+      when: not scap_file_status.stat.exists
+
+    - name: Unzip SCAP content if not present
+      unarchive:
+        src: "{{ scap_zip_file }}"
+        dest: "{{ scap_dest_dir }}"
+        remote_src: yes
+      when: not scap_file_status.stat.exists
+
+    - name: Run OpenSCAP remediation
+      command: >
+        oscap xccdf eval
+        --remediate
+        --profile {{ scap_profile }}
+        --report {{ rem_report }}
+        {{ scap_data_file }}
+      register: rem_result
+      failed_when: >
+        rem_result.rc != 0 and
+        ('Obtrusive data from probe!' not in rem_result.stderr)
+
+    - name: Show remediation result
+      debug:
+        msg: >
+          🛠️ Remediation completed on {{ inventory_hostname }}.
+          📁 HTML Report: {{ rem_report }}
