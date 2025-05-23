@@ -43,25 +43,25 @@
       loop_control:
         loop_var: os_type
 
-- name: Set template name and image URL for {{ os_type }}
+- name: "Set template name and image URL for {{ os_type }}"
   set_fact:
     template_name: "{{ os_image_lookup[os_type].name }}"
     image_url: "{{ os_image_lookup[os_type].url }}"
     image_file: "{{ iso_dir }}/{{ image_url | basename }}"
 
-- name: Download Cloud Image for {{ os_type }}
+- name: "Download Cloud Image for {{ os_type }}"
   ansible.builtin.get_url:
     url: "{{ image_url }}"
     dest: "{{ image_file }}"
     mode: "0644"
     force: no
 
-- name: Set next available template ID dynamically for {{ os_type }}
+- name: "Set next available template ID dynamically for {{ os_type }}"
   set_fact:
     template_id: >-
       {{ (qm_list.stdout_lines[1:] | map('split') | map('first') | map('int') | list | max + 1) if qm_list.stdout_lines|length > 1 else 9000 }}
 
-- name: Create VM for {{ os_type }} template
+- name: "Create VM for {{ os_type }} template"
   ansible.builtin.command:
     cmd: >-
       qm create {{ template_id }}
@@ -87,7 +87,7 @@
       --boot order=scsi0
       --serial0 socket --vga serial0
 
-- name: Resize disk to {{ disk_size }}
+- name: "Resize disk to {{ disk_size }}"
   ansible.builtin.command:
     cmd: >-
       qm resize {{ template_id }} scsi0 {{ disk_size }}
