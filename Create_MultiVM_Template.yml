@@ -1,26 +1,28 @@
 ---
-- name: Create Cloud-Init Template on Proxmox
+- name: Create Cloud-Init Templates on Proxmox
   hosts: all
   gather_facts: false
   become: true
 
   vars:
-    os_type: "ubuntu-22.04"  # Set via AWX survey dropdown
-    template_name: "{{ os_type }}-template"
     iso_dir: "/var/lib/vz/template/iso"
-    storage: "local-lvm"      # AWX survey
-    bridge: "vmbr0"           # AWX survey
-    memory: 2048              # AWX survey
-    cores: 2                  # AWX survey
-    disk_size: "10G"          # AWX survey
-    image_lookup:
-      ubuntu-22.04: "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
-      ubuntu-20.04: "https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img"
-      debian-12: "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2"
-      centos-9: "https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2"
-    image_url: "{{ image_lookup[os_type] }}"
-    image_file: "{{ iso_dir }}/{{ image_url | basename }}"
+    storage: "local-lvm"                   # Set this from AWX Survey
+    bridge: "vmbr0"                         # Set this from AWX Survey
+    memory: 2048                            # Set this from AWX Survey if needed
+    cores: 2                                # Set this from AWX Survey if needed
+    disk_size: "10G"                        # Default disk size for the template
 
+    # OS image lookup table
+    os_image_lookup:
+      ubuntu-22.04:
+        name: "ubuntu-22.04-template"
+        url: "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+      debian-12:
+        name: "debian-12-template"
+        url: "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2"
+      centos-9:
+        name: "centos-9-template"
+        url: "https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2"
 
   tasks:
     - name: Ensure ISO directory exists
@@ -31,63 +33,78 @@
         group: root
         mode: "0755"
 
-    - name: Download Ubuntu Cloud Image
-      ansible.builtin.get_url:
-        url: "{{ image_url }}"
-        dest: "{{ image_file }}"
-        mode: "0644"
-        force: no
-
     - name: Get current list of VMs
       command: qm list
       register: qm_list
 
-    - name: Set next available template ID dynamically
-      set_fact:
-        template_id: >-
-          {{ (qm_list.stdout_lines[1:] | map('split') | map('first') | map('int') | list | max + 1) if qm_list.stdout_lines|length > 1 else 9000 }}
+    - name: Create templates for selected OS types
+      include_tasks: create_template.yml
+      loop: "{{ os_types }}"
+      loop_control:
+        loop_var: os_type
+```
 
-    - name: Create VM for template
-      ansible.builtin.command:
-        cmd: >-
-          qm create {{ template_id }}
-          --name {{ template_name }}
-          --memory {{ memory }}
-          --cores {{ cores }}
-          --net0 virtio,bridge={{ bridge }}
-      args:
-        creates: "/etc/pve/qemu-server/{{ template_id }}.conf"
+create_template.yml:
+```yaml
+- name: Set template name and image URL for {{ os_type }}
+  set_fact:
+    template_name: "{{ os_image_lookup[os_type].name }}"
+    image_url: "{{ os_image_lookup[os_type].url }}"
+    image_file: "{{ iso_dir }}/{{ image_url | basename }}"
 
-    - name: Import disk to storage
-      ansible.builtin.command:
-        cmd: >-
-          qm importdisk {{ template_id }} {{ image_file }} {{ storage }}
+- name: Download Cloud Image for {{ os_type }}
+  ansible.builtin.get_url:
+    url: "{{ image_url }}"
+    dest: "{{ image_file }}"
+    mode: "0644"
+    force: no
 
-    - name: Configure VM hardware for cloud-init
-      ansible.builtin.command:
-        cmd: >-
-          qm set {{ template_id }}
-          --scsihw virtio-scsi-pci
-          --scsi0 {{ storage }}:vm-{{ template_id }}-disk-0
-          --ide2 {{ storage }}:cloudinit
-          --boot order=scsi0
-          --serial0 socket --vga serial0
+- name: Set next available template ID dynamically for {{ os_type }}
+  set_fact:
+    template_id: >-
+      {{ (qm_list.stdout_lines[1:] | map('split') | map('first') | map('int') | list | max + 1) if qm_list.stdout_lines|length > 1 else 9000 }}
 
-    - name: Resize disk to {{ disk_size }}
-      ansible.builtin.command:
-        cmd: >-
-          qm resize {{ template_id }} scsi0 {{ disk_size }}
+- name: Create VM for {{ os_type }} template
+  ansible.builtin.command:
+    cmd: >-
+      qm create {{ template_id }}
+      --name {{ template_name }}
+      --memory {{ memory }}
+      --cores {{ cores }}
+      --net0 virtio,bridge={{ bridge }}
+  args:
+    creates: "/etc/pve/qemu-server/{{ template_id }}.conf"
 
-    - name: Enable QEMU Guest Agent
-      ansible.builtin.command:
-        cmd: >-
-          qm set {{ template_id }} --agent enabled=1
+- name: Import disk to storage
+  ansible.builtin.command:
+    cmd: >-
+      qm importdisk {{ template_id }} {{ image_file }} {{ storage }}
 
-    - name: Convert VM to a template
-      ansible.builtin.command:
-        cmd: >-
-          qm template {{ template_id }}
+- name: Configure VM hardware for cloud-init
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ template_id }}
+      --scsihw virtio-scsi-pci
+      --scsi0 {{ storage }}:vm-{{ template_id }}-disk-0
+      --ide2 {{ storage }}:cloudinit
+      --boot order=scsi0
+      --serial0 socket --vga serial0
 
-    - name: Show template creation message
-      debug:
-        msg: "Cloud-Init template '{{ template_name }}' with ID {{ template_id }} has been created and is ready for VM deployment."
+- name: Resize disk to {{ disk_size }}
+  ansible.builtin.command:
+    cmd: >-
+      qm resize {{ template_id }} scsi0 {{ disk_size }}
+
+- name: Enable QEMU Guest Agent
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ template_id }} --agent enabled=1
+
+- name: Convert VM to a template
+  ansible.builtin.command:
+    cmd: >-
+      qm template {{ template_id }}
+
+- name: Show template creation message
+  debug:
+    msg: "Cloud-Init template '{{ template_name }}' with ID {{ template_id }} has been created for OS {{ os_type }}."
