@@ -42,10 +42,7 @@
       loop: "{{ os_types }}"
       loop_control:
         loop_var: os_type
-```
 
-create_template.yml:
-```yaml
 - name: Set template name and image URL for {{ os_type }}
   set_fact:
     template_name: "{{ os_image_lookup[os_type].name }}"
