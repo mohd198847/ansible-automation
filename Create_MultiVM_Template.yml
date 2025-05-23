@@ -1,5 +1,5 @@
 ---
-- name: Create Ubuntu 22.04 Cloud-Init Template on Proxmox
+- name: Create Cloud-Init Template on Proxmox
   hosts: all
   gather_facts: false
   become: true
