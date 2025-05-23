@@ -1,0 +1,59 @@
+- name: Set template name and image URL for {{ os_type }}
+  set_fact:
+    template_name: "{{ os_image_lookup[os_type].name }}"
+    image_url: "{{ os_image_lookup[os_type].url }}"
+    image_file: "{{ iso_dir }}/{{ image_url | basename }}"
+    template_id: >-
+      {{ (qm_list.stdout_lines[1:] | map('split') | map('first') | map('int') | list | max + 1) if qm_list.stdout_lines|length > 1 else 9000 }}
+
+- name: Download Cloud Image for {{ os_type }}
+  ansible.builtin.get_url:
+    url: "{{ image_url }}"
+    dest: "{{ image_file }}"
+    mode: "0644"
+    force: no
+
+- name: Create VM for {{ os_type }} template
+  ansible.builtin.command:
+    cmd: >-
+      qm create {{ template_id }}
+      --name {{ template_name }}
+      --memory {{ memory }}
+      --cores {{ cores }}
+      --net0 virtio,bridge={{ bridge }}
+  args:
+    creates: "/etc/pve/qemu-server/{{ template_id }}.conf"
+
+- name: Import disk to storage
+  ansible.builtin.command:
+    cmd: >-
+      qm importdisk {{ template_id }} {{ image_file }} {{ storage }}
+
+- name: Configure VM hardware for cloud-init
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ template_id }}
+      --scsihw virtio-scsi-pci
+      --scsi0 {{ storage }}:vm-{{ template_id }}-disk-0
+      --ide2 {{ storage }}:cloudinit
+      --boot order=scsi0
+      --serial0 socket --vga serial0
+
+- name: Resize disk to {{ disk_size }}
+  ansible.builtin.command:
+    cmd: >-
+      qm resize {{ template_id }} scsi0 {{ disk_size }}
+
+- name: Enable QEMU Guest Agent
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ template_id }} --agent enabled=1
+
+- name: Convert VM to a template
+  ansible.builtin.command:
+    cmd: >-
+      qm template {{ template_id }}
+
+- name: Show template creation message
+  debug:
+    msg: "Cloud-Init template '{{ template_name }}' with ID {{ template_id }} has been created for OS {{ os_type }}."
