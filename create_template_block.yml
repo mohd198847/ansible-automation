@@ -2,9 +2,13 @@
   set_fact:
     template_name: "{{ os_image_lookup[os_type]['name'] }}"
     image_url: "{{ os_image_lookup[os_type]['url'] }}"
+
+- name: Set image file path and template ID for {{ os_type }}
+  set_fact:
     image_file: "{{ iso_dir }}/{{ image_url | basename }}"
     template_id: >-
       {{ (qm_list.stdout_lines[1:] | map('split') | map('first') | map('int') | list | max + 1) if qm_list.stdout_lines|length > 1 else 9000 }}
+
 
 - name: Download Cloud Image for {{ os_type }}
   ansible.builtin.get_url:
