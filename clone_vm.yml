@@ -1,63 +1,64 @@
-- name: Check if VM {{ vm_name }} already exists
-  set_fact:
-    vm_exists: "{{ vm_name in (qm_list.stdout_lines[1:] | map('split') | map('extract', 1) | list) }}"
+- name: Create VM via Proxmox API and configure software
+  hosts: localhost
+  gather_facts: false
 
-- name: Skip if VM {{ vm_name }} already exists
-  debug:
-    msg: "VM {{ vm_name }} already exists. Skipping..."
-  when: vm_exists
+  vars:
+    proxmox_api_host: "https://100.93.123.31:8006"
+    api_user: "root@pam"
+    api_password: "wavespot"
+    node: "pve"
 
-- name: Get next available VM ID
-  set_fact:
-    vm_id: >-
-      {{
-        (qm_list.stdout_lines[1:] 
-         | map('split') 
-         | map('extract', 0)   # get VM IDs as strings first
-         | map('int')          # then convert to int
-         | list
-         | max + 1) if qm_list.stdout_lines | length > 1 else 100
-      }}
-  when: not vm_exists
+    vm_name: "dev-vm01"         # From AWX Survey
+    vm_id: 120                  # You can dynamically assign this if needed
+    template_vm_id: 9011
+    memory: 2048
+    cores: 2
+    disk_size: "15G"
+    vm_user: "admin"            # From AWX Survey
+    vm_password: "SecurePass123"  # From AWX Survey
+    software_to_install: []  # From AWX Multi-choice Survey
 
+  tasks:
+    - name: Clone VM from template using Proxmox API
+      community.general.proxmox_kvm:
+        api_user: "{{ api_user }}"
+        api_password: "{{ api_password }}"
+        api_host: "{{ proxmox_api_host }}"
+        node: "{{ node }}"
+        clone: "{{ template_vm_id }}"
+        vmid: "{{ vm_id }}"
+        name: "{{ vm_name }}"
+        memory: "{{ memory }}"
+        cores: "{{ cores }}"
+        net:
+          net0: "virtio,bridge=vmbr0"
+        ide:
+          ide2: "local:cloudinit"
+        ciuser: "{{ vm_user }}"
+        cipassword: "{{ vm_password }}"
+        timeout: 300
+        state: present
+      delegate_to: localhost
 
-- name: Clone VM from template
-  command: >
-    qm clone {{ template_name }} {{ vm_id }} --name {{ vm_name }}
-  when: not vm_exists
+    - name: Wait for VM to boot and SSH to be available
+      ansible.builtin.wait_for:
+        host: "{{ vm_name }}"
+        port: 22
+        timeout: 300
+        state: started
 
-- name: Set VM hardware
-  command: >
-    qm set {{ vm_id }} --memory {{ memory }} --cores {{ cores }}
-  when: not vm_exists
+    - name: Install Docker if selected
+      ansible.builtin.shell: |
+        apt-get update && apt-get install -y docker.io
+      when: "'docker' in software_to_install"
+      delegate_to: "{{ vm_name }}"
 
-- name: Resize disk
-  command: >
-    qm resize {{ vm_id }} scsi0 {{ disk_size }}
-  when: not vm_exists
+    - name: Install K3s if selected
+      ansible.builtin.shell: |
+        curl -sfL https://get.k3s.io | sh -
+      when: "'k3s' in software_to_install"
+      delegate_to: "{{ vm_name }}"
 
-- name: Set cloud-init username and password
-  command: >
-    qm set {{ vm_id }} --ciuser {{ vm_user }} --cipassword '{{ vm_password }}'
-  when: not vm_exists
-
-- name: Show success message
-  debug:
-    msg: "VM {{ vm_name }} with ID {{ vm_id }} created successfully."
-  when: not vm_exists
-
-- name: Install Docker if selected
-  ansible.builtin.shell: |
-    apt-get update && apt-get install -y docker.io
-  when:
-    - not vm_exists
-    - "'docker' in software_to_install"
-    - os_type in ['ubuntu-22.04', 'debian-12']
-
-- name: Install K3s if selected
-  ansible.builtin.shell: |
-    curl -sfL https://get.k3s.io | sh -
-  when:
-    - not vm_exists
-    - "'k3s' in software_to_install"
-    - os_type in ['ubuntu-22.04', 'debian-12']
+    - name: Show success message
+      debug:
+        msg: "✅ VM '{{ vm_name }}' with ID {{ vm_id }} created and configured successfully."
