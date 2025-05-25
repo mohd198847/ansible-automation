@@ -12,6 +12,7 @@
     memory: 2048
     cores: 2
     disk_size: "15G"
+    software_to_install: []                # Set via AWX Survey
 
   tasks:
     - name: Get current list of VMs
