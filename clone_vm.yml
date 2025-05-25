@@ -1,6 +1,6 @@
 - name: Check if VM {{ vm_name }} already exists
   set_fact:
-    vm_exists: "{{ vm_name in (qm_list.stdout_lines[1:] | map('split') | map('2') | list) }}"
+    vm_exists: "{{ vm_name in (qm_list.stdout_lines[1:] | map('split') | map('extract', 2) | list) }}"
 
 - name: Skip if VM {{ vm_name }} already exists
   debug:
