@@ -1,0 +1,68 @@
+---
+- name: Clone VMs from existing templates
+  hosts: all
+  gather_facts: false
+  become: true
+
+  vars:
+    storage: "local-lvm"
+    bridge: "vmbr0"
+    memory: 2048                  # Set this via survey if needed
+    cpu: 2                        # Set this via survey if needed
+    disk_size: "20G"             # Set this via survey if needed
+    vm_username: "admin"         # From survey
+    vm_password: "changeme"       # From survey
+    template_os: "ubuntu-22.04"   # From survey
+    vm_names:                    # Manually defined list
+      - testvm1
+      - testvm2
+
+    clone_template_lookup:
+      ubuntu-22.04: "ubuntu-22.04-template"
+      debian-12: "debian-12-template"
+      windows-2022: "windows-2022-template"
+
+  tasks:
+    - name: Get current list of VMs
+      command: qm list
+      register: qm_list
+
+    - name: Extract existing VM names
+      set_fact:
+        existing_vm_names: >-
+          {{ qm_list.stdout_lines[1:] | map('split') | map('2') | list }}
+
+    - name: Loop over VM names to create VMs
+      block:
+        - name: Fail if VM {{ item }} already exists
+          fail:
+            msg: "VM '{{ item }}' already exists. Choose a different name."
+          when: item in existing_vm_names
+
+        - name: Set variables for {{ item }}
+          set_fact:
+            vm_id: >-
+              {{ (qm_list.stdout_lines[1:] | map('split') | map('first') | map('int') | list | max + 1) if qm_list.stdout_lines|length > 1 else 100 }}
+            vm_name: "{{ item }}"
+            template_name: "{{ clone_template_lookup[template_os] }}"
+
+        - name: Clone template to create VM {{ vm_name }}
+          command: >
+            qm clone $(qm list | grep {{ template_name }} | awk '{print $1}') {{ vm_id }} --name {{ vm_name }} --full true
+
+        - name: Set hardware options for VM {{ vm_name }}
+          command: >
+            qm set {{ vm_id }} --memory {{ memory }} --cores {{ cpu }} --net0 virtio,bridge={{ bridge }} --scsi0 {{ storage }}:vm-{{ vm_id }}-disk-0 --scsihw virtio-scsi-pci --serial0 socket --vga serial0
+
+        - name: Resize VM disk
+          command: >
+            qm resize {{ vm_id }} scsi0 {{ disk_size }}
+
+        - name: Set Cloud-Init user credentials
+          command: >
+            qm set {{ vm_id }} --ciuser {{ vm_username }} --cipassword {{ vm_password }}
+
+        - name: Start VM {{ vm_name }}
+          command: >
+            qm start {{ vm_id }}
+      loop: "{{ vm_names }}"
