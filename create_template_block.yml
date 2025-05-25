@@ -9,6 +9,10 @@
     template_id: >-
       {{ (qm_list.stdout_lines[1:] | map('split') | map('first') | map('int') | list | max + 1) if qm_list.stdout_lines|length > 1 else 9000 }}
 
+- name: Write SSH public key to temporary file
+  copy:
+    content: "{{ ssh_key }}"
+    dest: "/tmp/admin_id_rsa.pub"
 
 - name: Download Cloud Image for {{ os_type }}
   ansible.builtin.get_url:
@@ -44,7 +48,7 @@
       --serial0 socket --vga serial0
       --ciuser {{ vm_user }}
       --cipassword '{{ vm_password }}'
-      --sshkeys "{{ ssh_key }}"
+      --sshkeys " /tmp/admin_id_rsa.pub}"
       
 - name: Resize disk to {{ disk_size }}
   ansible.builtin.command:
