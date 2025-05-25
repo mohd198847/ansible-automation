@@ -10,7 +10,7 @@
 
     vm_name: "dev-vm01"         # From AWX Survey
     vm_id: 120                  # You can dynamically assign this if needed
-    template_vm_id: 9011
+    template_vm_id: 9017
     memory: 2048
     cores: 2
     disk_size: "15G"
