@@ -13,7 +13,7 @@
     disk_size: "10G"                        # Optional via AWX
     vm_user: "admin"
     vm_password: "SecurePass123"
-    ssh_key: "{{ lookup('file', './id_rsa.pub') }}"
+    ssh_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCWhvTm4pj0iNPZyU07C7PhPYRrhDPo6i13whDjGMetSP/Ai5+5J7pfmhA0MtLZnex0uw1SuoIEpG3XDudGD9MHwOSvNp3WMY1VUap2PLQoH+CO8JydZNRoE/yg3zMPP9+dWXIO298kwOyPWooeTkZUVEHbZvT7jA2f6AQmbI+9Fhz7zPmzakbbIQQaSN+43UT4p4cVsFF6QR8WyCh0Psaz2KZt4MXFabU5WwSUtMQD9p+Hv38DlPalM6L6snUuJgq/TsNlU3ELkTUeo/qBsuy7vRO72LpWYg7QfHAuy2AnvH+1KtdTMEJYSEU9DDZUBgDp2bKhH6ivWebp2CZighy/ user@example"
 
     # OS image lookup table
     os_image_lookup:
