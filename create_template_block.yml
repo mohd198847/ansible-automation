@@ -48,7 +48,7 @@
       --serial0 socket --vga serial0
       --ciuser {{ vm_user }}
       --cipassword '{{ vm_password }}'
-      --sshkeys " /tmp/admin_id_rsa.pub}"
+      --sshkeys "{{ ssh_key }}"
       
 - name: Resize disk to {{ disk_size }}
   ansible.builtin.command:
