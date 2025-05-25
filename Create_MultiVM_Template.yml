@@ -13,7 +13,7 @@
     disk_size: "10G"                        # Optional via AWX
     vm_user: "admin"
     vm_password: "SecurePass123"
-    ssh_key: "{{ lookup('file', '/tmp/id_rsa.pub') }}"
+    ssh_key: "{{ lookup('file', './id_rsa.pub') }}"
 
     # OS image lookup table
     os_image_lookup:
