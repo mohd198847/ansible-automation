@@ -11,6 +11,9 @@
     memory: 2048                            # Optional via AWX
     cores: 2                                # Optional via AWX
     disk_size: "10G"                        # Optional via AWX
+    vm_user: "admin"
+    vm_password: "SecurePass123"
+    ssh_key: "{{ lookup('file', './id_rsa.pub') }}"
 
     # OS image lookup table
     os_image_lookup:
