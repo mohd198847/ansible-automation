@@ -1,6 +1,6 @@
 - name: Check if VM {{ vm_name }} already exists
   set_fact:
-    vm_exists: "{{ vm_name in (qm_list.stdout_lines[1:] | map('split') | map('extract', 2) | list) }}"
+    vm_exists: "{{ vm_name in (qm_list.stdout_lines[1:] | map('split') | map('extract', 1) | list) }}"
 
 - name: Skip if VM {{ vm_name }} already exists
   debug:
@@ -10,8 +10,7 @@
 - name: Get next available VM ID
   set_fact:
     vm_id: >-
-      {{ (qm_list.stdout_lines[1:] | map('split') | map('0') | map('int') | list | max + 1) if qm_list.stdout_lines|length > 1 else 100 }}
-
+      {{ (qm_list.stdout_lines[1:] | map('split') | map('first') | map('int') | list | max + 1) if qm_list.stdout_lines | length > 1 else 100 }}
   when: not vm_exists
 
 - name: Clone VM from template
@@ -38,7 +37,6 @@
   debug:
     msg: "VM {{ vm_name }} with ID {{ vm_id }} created successfully."
   when: not vm_exists
-
 
 - name: Install Docker if selected
   ansible.builtin.shell: |
