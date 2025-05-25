@@ -13,9 +13,8 @@
     vm_username: "admin"         # From survey
     vm_password: "changeme"       # From survey
     template_os: "ubuntu-22.04"   # From survey
-    vm_names:                    # Manually defined list
-      - testvm1
-      - testvm2
+    vm_names: "testvm1"                   # Manually defined list
+    
 
     clone_template_lookup:
       ubuntu-22.04: "ubuntu-22.04-template"
