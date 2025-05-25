@@ -53,6 +53,16 @@
     cmd: >-
       qm set {{ template_id }} --agent enabled=1
 
+- name: Set cloud-init user, password, and SSH key
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ template_id }}
+      --ciuser {{ vm_user }}
+      --cipassword '{{ vm_password }}'
+      --sshkey "{{ ssh_key }}"
+  when: vm_user is defined and vm_password is defined and ssh_key is defined
+
+
 - name: Convert VM to a template
   ansible.builtin.command:
     cmd: >-
