@@ -57,8 +57,13 @@
       --boot order=scsi0
       --serial0 socket --vga serial0
 
+- name: Configure VM hardware for dhcp boot
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ template_id }}
+      --ipconfig0 ip=dhcp
 
-
+      
 - name: Configure Cloud-init ssh key
   ansible.builtin.command:
     cmd: >-
