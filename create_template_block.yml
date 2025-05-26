@@ -37,15 +37,30 @@
     cmd: >-
       qm importdisk {{ template_id }} {{ image_file }} {{ storage }}
 
-- name: Configure VM hardware for cloud-init
+- name: Configure VM hardware for disk
   ansible.builtin.command:
     cmd: >-
       qm set {{ template_id }}
       --scsihw virtio-scsi-pci
       --scsi0 {{ storage }}:vm-{{ template_id }}-disk-0
+      
+- name: Configure VM hardware for cloud-init
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ template_id }}
       --ide2 {{ storage }}:cloudinit
+ 
+- name: Configure VM hardware for boot disk
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ template_id }}
       --boot order=scsi0
       --serial0 socket --vga serial0
+
+- name: Configure Cloud-init ssh key
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ template_id }}
       --sshkeys {{ ssh_key }}
       
 - name: Resize disk to {{ disk_size }}
