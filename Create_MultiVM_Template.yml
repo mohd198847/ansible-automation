@@ -10,8 +10,7 @@
     bridge: "vmbr0"                         # Set from AWX Survey
     memory: 2048                            # Optional via AWX
     cores: 2                                # Optional via AWX
-    disk_size: "10G"                        # Optional via AWX
-    vm_password: "SecurePass123"
+    disk_size: "2G"                        # Optional via AWX
     ssh_key: "{{ lookup('file', './id_rsa.pub') }}"
 
     # OS image lookup table
