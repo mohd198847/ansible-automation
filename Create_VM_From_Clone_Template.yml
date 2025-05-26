@@ -10,11 +10,11 @@
 
     vm_name: "dev-vm01"         # From AWX Survey
     vm_id: 120                  # You can dynamically assign this if needed
-    template_vm_id: 9017
+    template_vm_id: 100
     memory: 2048
     cores: 2
     disk_size: "15G"
-    vm_user: "admin"            # From AWX Survey
+    vm_user: "ubuntu"            # From AWX Survey
     vm_password: "SecurePass123"  # From AWX Survey
     software_to_install: []  # From AWX Multi-choice Survey
 
