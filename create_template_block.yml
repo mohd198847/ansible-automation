@@ -54,15 +54,13 @@
   ansible.builtin.command:
     cmd: >-
       qm set {{ template_id }}
-      --boot order=scsi0
-      --serial0 socket --vga serial0
+      --boot c --bootdisk scsi0
 
-- name: Configure VM hardware for dhcp boot
+- name: Configure VM hardware for boot disk
   ansible.builtin.command:
     cmd: >-
       qm set {{ template_id }}
-      --ipconfig0 ip=dhcp
-
+      --serial0 socket --vga serial0
       
 - name: Configure Cloud-init ssh key
   ansible.builtin.command:
@@ -70,6 +68,12 @@
       qm set {{ template_id }}
       --sshkey /tmp/admin_id_rsa.pub
       
+- name: Configure VM hardware for dhcp boot
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ template_id }}
+      --ipconfig0 ip=dhcp
+
 # - name: Resize disk to {{ disk_size }}
 #   ansible.builtin.command:
 #     cmd: >-
