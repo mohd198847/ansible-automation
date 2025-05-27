@@ -9,10 +9,10 @@
     template_id: >-
       {{ (qm_list.stdout_lines[1:] | map('split') | map('first') | map('int') | list | max + 1) if qm_list.stdout_lines|length > 1 else 9000 }}
 
-# - name: Write SSH public key to temporary file
-#   copy:
-#     content: "{{ ssh_key }}"
-#     dest: "/tmp/admin_id_rsa.pub"
+- name: Write SSH public key to temporary file
+  copy:
+    content: "{{ ssh_key }}"
+    dest: "/tmp/admin_id_rsa.pub"
 
 - name: Download Cloud Image for {{ os_type }}
   ansible.builtin.get_url:
@@ -63,43 +63,51 @@
       --serial0 socket --vga serial0
 
 
-- name: Ensure snippet directory exists
-  file:
-    path: "{{ snippet_path }}"
-    state: directory
-    mode: '0755'
+# - name: Ensure snippet directory exists
+#   file:
+#     path: "{{ snippet_path }}"
+#     state: directory
+#     mode: '0755'
 
-- name: Copy cloud-init user-data file to Proxmox snippets
-  copy:
-    src: cloud-init.yml
-    dest: "{{ snippet_path }}/{{ snippet_filename }}"
-    mode: '0644'
+# - name: Copy cloud-init user-data file to Proxmox snippets
+#   copy:
+#     src: cloud-init.yml
+#     dest: "{{ snippet_path }}/{{ snippet_filename }}"
+#     mode: '0644'
 
-- name: Attach cloud-init user-data snippet to VM
-  command: >
-    qm set {{ template_id }}
-    --cicustom "user={{ storage }}:snippets/{{ snippet_filename }}"
+# - name: Attach cloud-init user-data snippet to VM
+#   command: >
+#     qm set {{ template_id }}
+#     --cicustom "user={{ storage }}:snippets/{{ snippet_filename }}"
+
+- name: Set cloud-init user, password, and SSH key
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ template_id }}
+      --cipassword '{{ vm_password }}'
+      --sshkey /tmp/admin_id_rsa.pub
+
 # - name: Configure Cloud-init ssh key
 #   ansible.builtin.command:
 #     cmd: >-
 #       qm set {{ template_id }}
 #       --sshkey /tmp/admin_id_rsa.pub
       
-# - name: Configure VM hardware for dhcp boot
-#   ansible.builtin.command:
-#     cmd: >-
-#       qm set {{ template_id }}
-#       --ipconfig0 ip=dhcp
+- name: Configure VM hardware for dhcp boot
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ template_id }}
+      --ipconfig0 ip=dhcp
 
 # - name: Resize disk to {{ disk_size }}
 #   ansible.builtin.command:
 #     cmd: >-
 #       qm resize {{ template_id }} scsi0 {{ disk_size }}
 
-# - name: Enable QEMU Guest Agent
-#   ansible.builtin.command:
-#     cmd: >-
-#       qm set {{ template_id }} --agent enabled=1
+- name: Enable QEMU Guest Agent
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ template_id }} --agent enabled=1
 
 # - name: Set cloud-init user, password, and SSH key
 #   ansible.builtin.command:
