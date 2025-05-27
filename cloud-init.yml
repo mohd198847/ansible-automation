@@ -8,6 +8,8 @@ users:
     shell: /bin/bash
     lock_passwd: false
     passwd: "$6$58zEpX45WD3vDTS2$sru.eDrLAqBTiAwUPEdpYAdRmzL47Rz/GYuRXZ6hGCPph3omAGxJqGhphC3ToHAOGvfm.82TezCLdG6pJMVFQ."  # encrypted password
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCSEm6F9dqBJKJsoUOrl0HUjBby397nBpaK/5b3gg4LfMQk5MvPvvlvPRfKEdml5854nImIie/YDSJszTvO47DscTldMSSmiHupIM2F8n848N1s9DQQ+j9sjYe+GsEr4Dmsy5Ma2JtS5Dsis3AfgHBz4xrHCQeDrYt26WkvsvUB5Z3Qhp7tWJNEAckviqE0QWaG1kwta6StCiNrPjWHTjzQ/PHwN63MKmrdxvyGnacpTvUGgbenJcDDd8R+Glh66d832xCMb/aqzeqYivzmcxwF8L/NM/AVv83F0KuN4tjIowqhbqpAtMZ8dUswaLx/66LIYEi62FSRwFViyI5RUyqunXZCyNJ8IjauznoF/EB4YiGdQ5Nq0ETTMlwBVuDvF2ttQyYQroIZPitANFppOuSsrYqvj1BYkqf7aH0FveidkncIfGkv4gTbFVPKUGPDoRyeztpCK2JHlFlms4z9NXrXhR3uJFNRjs8NfA69yymvzqqQDH7Pce6CU3cMMtFnp6E=
 
 chpasswd:
   expire: false
