@@ -11,7 +11,10 @@
     memory: 2048                            # Optional via AWX
     cores: 2                                # Optional via AWX
     disk_size: "2G"                        # Optional via AWX
-    ssh_key: "{{ lookup('file', './id_rsa.pub') }}"
+    #ssh_key: "{{ lookup('file', './id_rsa.pub') }}"
+    snippet_filename: "cloud-init.yml"
+    storage: local-lvm         # or whatever storage holds your snippets
+    snippet_path: "/var/lib/vz/snippets"
 
     # OS image lookup table
     os_image_lookup:
