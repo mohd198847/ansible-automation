@@ -70,15 +70,15 @@
     mode: '0755'
 
 - name: Copy cloud-init user-data file to Proxmox snippets
-    copy:
-      src: cloud-init.yml
-      dest: "{{ snippet_path }}/{{ snippet_filename }}"
-      mode: '0644'
+  copy:
+    src: cloud-init.yml
+    dest: "{{ snippet_path }}/{{ snippet_filename }}"
+    mode: '0644'
 
 - name: Attach cloud-init user-data snippet to VM
-    command: >
-      qm set {{ template_id }}
-      --cicustom "user={{ storage }}:snippets/{{ snippet_filename }}"
+  command: >
+    qm set {{ template_id }}
+    --cicustom "user={{ storage }}:snippets/{{ snippet_filename }}"
 # - name: Configure Cloud-init ssh key
 #   ansible.builtin.command:
 #     cmd: >-
