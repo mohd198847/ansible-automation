@@ -1,0 +1,25 @@
+#cloud-config
+#passwd mkpasswd --method=SHA-512 
+#admin/admin@123
+users:
+  - name: admin
+    gecos: Admin User
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    lock_passwd: false
+    passwd: "$6$58zEpX45WD3vDTS2$sru.eDrLAqBTiAwUPEdpYAdRmzL47Rz/GYuRXZ6hGCPph3omAGxJqGhphC3ToHAOGvfm.82TezCLdG6pJMVFQ."  # encrypted password
+
+chpasswd:
+  expire: false
+
+ssh_pwauth: true
+
+package_update: true
+packages:
+  - qemu-guest-agent
+
+runcmd:
+  - systemctl enable qemu-guest-agent
+  - systemctl start qemu-guest-agent
+  - sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+  - systemctl restart sshd
