@@ -77,7 +77,7 @@
 
 - name: Attach cloud-init user-data snippet to VM
     command: >
-      qm set {{ vm_id }}
+      qm set {{ template_id }}
       --cicustom "user={{ storage }}:snippets/{{ snippet_filename }}"
 # - name: Configure Cloud-init ssh key
 #   ansible.builtin.command:
