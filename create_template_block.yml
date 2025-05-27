@@ -80,7 +80,7 @@
 #       qm resize {{ template_id }} scsi0 {{ disk_size }}
 
 - name: Enable QEMU Guest Agent
- ansible.builtin.command:
+  ansible.builtin.command:
    cmd: >-
     qm set {{ template_id }} --agent enabled=1
 
