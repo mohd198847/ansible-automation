@@ -61,28 +61,45 @@
     cmd: >-
       qm set {{ template_id }}
       --serial0 socket --vga serial0
+
+
+- name: Ensure snippet directory exists
+  file:
+    path: "{{ snippet_path }}"
+    state: directory
+    mode: '0755'
+
+- name: Copy cloud-init user-data file to Proxmox snippets
+    copy:
+      src: cloud-init.yml
+      dest: "{{ snippet_path }}/{{ snippet_filename }}"
+      mode: '0644'
+
+- name: Attach cloud-init user-data snippet to VM
+    command: >
+      qm set {{ vm_id }}
+      --cicustom "user={{ storage }}:snippets/{{ snippet_filename }}"
+# - name: Configure Cloud-init ssh key
+#   ansible.builtin.command:
+#     cmd: >-
+#       qm set {{ template_id }}
+#       --sshkey /tmp/admin_id_rsa.pub
       
-- name: Configure Cloud-init ssh key
-  ansible.builtin.command:
-    cmd: >-
-      qm set {{ template_id }}
-      --sshkey /tmp/admin_id_rsa.pub
-      
-- name: Configure VM hardware for dhcp boot
-  ansible.builtin.command:
-    cmd: >-
-      qm set {{ template_id }}
-      --ipconfig0 ip=dhcp
+# - name: Configure VM hardware for dhcp boot
+#   ansible.builtin.command:
+#     cmd: >-
+#       qm set {{ template_id }}
+#       --ipconfig0 ip=dhcp
 
 # - name: Resize disk to {{ disk_size }}
 #   ansible.builtin.command:
 #     cmd: >-
 #       qm resize {{ template_id }} scsi0 {{ disk_size }}
 
-- name: Enable QEMU Guest Agent
-  ansible.builtin.command:
-    cmd: >-
-      qm set {{ template_id }} --agent enabled=1
+# - name: Enable QEMU Guest Agent
+#   ansible.builtin.command:
+#     cmd: >-
+#       qm set {{ template_id }} --agent enabled=1
 
 # - name: Set cloud-init user, password, and SSH key
 #   ansible.builtin.command:
