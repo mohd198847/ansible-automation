@@ -3,23 +3,40 @@
   hosts: all
   become: yes
   vars:
-    scap_url: "https://github.com/ComplianceAsCode/content/releases/download/v0.1.76/scap-security-guide-0.1.76.zip"
+    scap_url: "https://github.com/ComplianceAsCode/content/releases/download/v0.1.76/scap-security-guide-0.1.77.zip"
     scap_dest_dir: "/opt/scap-security-guide"
-    scap_zip_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.76.zip"
-    scap_data_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.76/ssg-ubuntu2204-ds.xml"
+    scap_zip_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.77.zip"
+    scap_data_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.77/ssg-ubuntu2404-ds.xml"
     report_file: "{{ scap_dest_dir }}/stig-report-{{ ansible_date_time.iso8601_basic_short }}.html"
     scap_profile: "{{ scap_profile | default('xccdf_org.ssgproject.content_profile_standard') }}"
 
 
   tasks:
 
-    - name: Install required packages
-      apt:
-        name:
-          - libopenscap8
-          - unzip
-        state: present
-        update_cache: yes
+# - name: Install required packages
+#   apt:
+#     name: "{{ openscap_packages }}"
+#     state: present
+#     update_cache: yes
+#   vars:
+#     # Set default packages for older Ubuntu versions (like 22.04)
+#     openscap_packages:
+#       - libopenscap8
+#       - unzip
+#   when: ansible_distribution_major_version | int == 22 or ansible_distribution_version == "22.04"
+
+# - name: Install required packages for Ubuntu 24.04
+#   apt:
+#     name: "{{ openscap_scanner_packages }}"
+#     state: present
+#     update_cache: yes
+#   vars:
+#     openscap_scanner_packages:
+#       - openscap-scanner
+#       - openscap-utils
+#       - bzip2
+#   when: ansible_distribution_major_version | int >= 24 or ansible_distribution_version == "24.04"
+
 
     - name: Create directory for SCAP content
       file:
