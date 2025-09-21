@@ -1,0 +1,87 @@
+---
+- name: Install OpenSCAP and run STIG scan
+  hosts: all
+  become: yes
+  vars:
+    scap_url: "https://github.com/ComplianceAsCode/content/releases/download/v0.1.77/scap-security-guide-0.1.77.zip"
+    scap_dest_dir: "/opt/scap-security-guide"
+    scap_zip_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.77.zip"
+
+    # dynamic single-line SCAP data file: uses ansible_distribution_version if defined,
+    # otherwise falls back to "<major_version>.04" (e.g. 22 -> 22.04)
+    scap_data_file: "{{ scap_dest_dir }}/scap-security-guide-0.1.77/ssg-ubuntu{{ (ansible_distribution_version if (ansible_distribution_version is defined) else (ansible_distribution_major_version ~ '.04')) | regex_replace('\\.', '') }}-ds.xml"
+
+    report_file: "{{ scap_dest_dir }}/stig-report-{{ ansible_date_time.iso8601_basic_short }}.html"
+    scap_profile: "{{ scap_profile | default('xccdf_org.ssgproject.content_profile_standard') }}"
+
+  tasks:
+    - name: Install required packages for Ubuntu 22.04
+      apt:
+        name: "{{ openscap_packages }}"
+        state: present
+        update_cache: yes
+      vars:
+        openscap_packages:
+          - libopenscap8
+          - unzip
+      when: ansible_distribution_major_version | int == 22 or ansible_distribution_version == "22.04"
+
+    - name: Install required packages for Ubuntu 24.04
+      apt:
+        name: "{{ openscap_scanner_packages }}"
+        state: present
+        update_cache: yes
+      vars:
+        openscap_scanner_packages:
+          - openscap-scanner
+          - openscap-utils
+          - openscap-common
+          - libopenscap25
+          - bzip2
+      when: ansible_distribution_major_version | int >= 24 or ansible_distribution_version == "24.04"
+
+    - name: Create directory for SCAP content
+      file:
+        path: "{{ scap_dest_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Download SCAP Security Guide
+      get_url:
+        url: "{{ scap_url }}"
+        dest: "{{ scap_zip_file }}"
+        mode: '0644'
+
+    - name: Unzip SCAP content
+      unarchive:
+        src: "{{ scap_zip_file }}"
+        dest: "{{ scap_dest_dir }}"
+        remote_src: yes
+
+    - name: Run OpenSCAP STIG scan
+      command: >
+        oscap xccdf eval
+        --profile {{ scap_profile }}
+        --report {{ report_file }}
+        {{ scap_data_file }}
+      register: scap_result
+      failed_when: >
+        scap_result.rc != 0 and
+        ('Obtrusive data from probe!' not in scap_result.stderr)
+
+    - name: Show success message
+      debug:
+        msg: >
+          ✅ OpenSCAP scan complete on {{ inventory_hostname }}.
+          📁 HTML Report: {{ report_file }}
+
+
+    - name: Read generated SCAP report
+      slurp:
+        src: "{{ report_file }}"
+      register: scap_report
+
+    - name: Save SCAP report as artifact
+      set_stats:
+        data:
+          scap_html_report: "{{ scap_report.content | b64decode }}"
